@@ -1,0 +1,13 @@
+# Binaires et objets
+bin/
+*.out
+*.o
+
+# Données lourdes et datasets (.mat)
+*.mat
+ressources/
+data/
+
+# Fichiers système et éditeur
+.DS_Store
+.vscode/
