@@ -17,7 +17,7 @@
 #define VAL_N    10000
 #define BATCH    100        // divides both 50000 and 10000
 #define HIDDEN   128
-#define EPOCHS   1
+#define EPOCHS   5
 #define LR       0.5f       // MSE + sigmoid needs a big rate; lower it if the loss blows up
 
 #define CHECK(p) do { if (!(p)) { fprintf(stderr, "failed: " #p "\n"); return 1; } } while (0)
