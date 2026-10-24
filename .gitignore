@@ -1,13 +1,15 @@
-# Binaires et objets
-bin/
+# Binaries and objects
+bin/*
+!bin/.gitkeep
 *.out
 *.o
 
-# Données lourdes et datasets (.mat)
+# Datasets (.mat), regenerate with utils/main.py
 *.mat
-ressources/
+ressources/*
+!ressources/.gitkeep
 data/
 
-# Fichiers système et éditeur
+# System and editor files
 .DS_Store
 .vscode/

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/types.h>
 
 #define ARENA_IMPLEMENTATION
 #include "../include/arena.h"
@@ -6,6 +7,22 @@
 #define MATRIX_IMPLEMENTATION
 #include "../include/matrix.h"
 
+#define NODE_IMPLEMENTATION
+#include "../include/node.h"
+
+Node *node_load(Mem_Arena *arena, size_t rows, size_t cols, char *filename) {
+    Node *node = node_create(arena, rows, cols, 0);
+    FILE *file = fopen(filename, "rb");
+
+    size_t total_elements = rows * cols;
+    size_t read_count = fread(node->main->data, sizeof(float), total_elements, file);
+
+    if (read_count != total_elements) { fprintf(stderr, "Error: Expected to read %zu floats, but got %zu.\n", total_elements, read_count); }
+    else { printf("Successfully loaded all 60,000 images into memory!\n"); }
+
+    fclose(file);
+    return node;
+}
 
 void mat_show(Matrix *m) {
     if (!m || !m->data) {
@@ -60,33 +77,14 @@ int read_int(void) {
 int main(void) {
     Mem_Arena *arena = arena_create(MiB(200));
 
-    size_t img_row = 28;
-    size_t img_col = 28;
-    size_t total_images = 60000;
-
-    Matrix *train_images = mat_create(arena, total_images, img_row * img_col);
-    if (!train_images) { printf("Error: train images mat didn't make it T_T\n"); return 1; }
-
-    FILE *train_images_file = fopen("ressources/train_images.mat", "rb");
-
-    size_t total_elements = total_images * img_row * img_col;
-    size_t read_count = fread(train_images->data, sizeof(float), total_elements, train_images_file);
-
-    if (read_count != total_elements) { fprintf(stderr, "Error: Expected to read %zu floats, but got %zu.\n", total_elements, read_count); }
-    else { printf("Successfully loaded all 60,000 images into memory!\n"); }
-
-    fclose(train_images_file);
-
-    size_t total_labels = 60000;
-    Matrix *train_labels = mat_create(arena, total_labels, 1);
-
-    FILE *train_labels_file = fopen("ressources/train_labels.mat", "rb");
-
-    size_t read_count_labels = fread(train_labels->data, sizeof(float), total_labels, train_labels_file);
-    if (read_count_labels != total_labels) { fprintf(stderr, "Error: Expected to read %zu floats, but got %zu.\n", total_labels, read_count_labels); }
-    else { printf("Successfully loaded all 60,000 labels into memory!\n"); }
-
-    fclose(train_labels_file);
+    size_t img_row            = 28;
+    size_t img_col            = 28;
+    size_t total_images       = 60000;
+    char *train_img_file      = "ressources/train_images.mat";
+    Node *train_images        = node_load(arena, total_images, img_row * img_col, train_img_file);
+    
+    char *train_labels_file      = "ressources/train_labels.mat";
+    Node *train_labels  = node_load(arena, total_images, 1, train_labels_file);
 
     while (1) {
         printf("\n>> ");
@@ -98,21 +96,104 @@ int main(void) {
         Matrix mat_img = (Matrix) {
             .rows = img_row,
             .cols = img_col,
-            .data = train_images->data + (index * img_row * img_col)
+            .data = train_images->main->data + (index * img_row * img_col)
         };
         
         Matrix mat_label = (Matrix) {
             .rows = 1,
             .cols = 1,
-            .data = train_labels->data + index
+            .data = train_labels->main->data + index
         };
+
+        // Matrix mat_onehot_label = (Matrix) {
+        //     .rows = 1,
+        //     .cols = 10,
+        //     .data = train_labels_onehot->data + (index * 10)
+        // };
 
         mat_show(&mat_img);
         mat_print(&mat_label);
+        // mat_print(&mat_onehot_label);
     }
 
-    arena_free(arena);
+    arena_destroy(arena);
     return 0;
 }
 
-// gcc -o bin/data_loading tests/data_loading.c && ./bin/data_loading
+// int main(void) {
+//     Mem_Arena *arena = arena_create(MiB(200));
+
+//     size_t img_row = 28;
+//     size_t img_col = 28;
+//     size_t total_images = 60000;
+
+//     Matrix *train_images = mat_create(arena, total_images, img_row * img_col);
+//     if (!train_images) { printf("Error: train images mat didn't make it T_T\n"); return 1; }
+
+//     FILE *train_images_file = fopen("ressources/train_images.mat", "rb");
+
+//     size_t total_elements = total_images * img_row * img_col;
+//     size_t read_count = fread(train_images->data, sizeof(float), total_elements, train_images_file);
+
+//     if (read_count != total_elements) { fprintf(stderr, "Error: Expected to read %zu floats, but got %zu.\n", total_elements, read_count); }
+//     else { printf("Successfully loaded all 60,000 images into memory!\n"); }
+
+//     fclose(train_images_file);
+
+//     size_t total_labels = 60000;
+//     Matrix *train_labels = mat_create(arena, total_labels, 1);
+
+//     FILE *train_labels_file = fopen("ressources/train_labels.mat", "rb");
+
+//     size_t read_count_labels = fread(train_labels->data, sizeof(float), total_labels, train_labels_file);
+//     if (read_count_labels != total_labels) { fprintf(stderr, "Error: Expected to read %zu floats, but got %zu.\n", total_labels, read_count_labels); }
+//     else { printf("Successfully loaded all 60,000 labels into memory!\n"); }
+
+//     fclose(train_labels_file);
+
+//     Matrix *train_labels_onehot = mat_create(arena, total_labels, 10);
+//     for (size_t i = 0; i < total_labels; i++) {
+
+//         float val = (int) train_labels->data[i];
+//         int label_class = (int) val;
+
+//         float *row = train_labels_onehot->data + (i * 10);
+//         if (label_class >= 0 && label_class < 10) row[label_class] = 1.0f;
+//     }
+    
+
+//     while (1) {
+//         printf("\n>> ");
+//         int index = read_int();
+
+//         if (index == -1) break;
+//         if (index < 0 || index >= (int)total_images) continue;
+
+//         Matrix mat_img = (Matrix) {
+//             .rows = img_row,
+//             .cols = img_col,
+//             .data = train_images->data + (index * img_row * img_col)
+//         };
+        
+//         Matrix mat_label = (Matrix) {
+//             .rows = 1,
+//             .cols = 1,
+//             .data = train_labels->data + index
+//         };
+
+//         Matrix mat_onehot_label = (Matrix) {
+//             .rows = 1,
+//             .cols = 10,
+//             .data = train_labels_onehot->data + (index * 10)
+//         };
+
+//         mat_show(&mat_img);
+//         mat_print(&mat_label);
+//         mat_print(&mat_onehot_label);
+//     }
+
+//     arena_destroy(arena);
+//     return 0;
+// }
+
+// // gcc -o bin/data_loading tests/data_loading.c && ./bin/data_loading
